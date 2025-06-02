@@ -1,0 +1,5 @@
+Flask
+openai
+pdfplumber
+python-dotenv
+werkzeug

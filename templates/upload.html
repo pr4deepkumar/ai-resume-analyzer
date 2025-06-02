@@ -1,0 +1,186 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <title>AI-Powered Resume Analyzer</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        padding: 20px;
+      }
+
+      .drop-zone {
+        border: 2px dashed #ccc;
+        padding: 40px;
+        text-align: center;
+        cursor: pointer;
+        margin-bottom: 15px;
+      }
+
+      .drop-zone.dragover {
+        background-color: #eef;
+      }
+
+      .loader {
+        border: 8px solid #f3f3f3;
+        border-top: 8px solid #3498db;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        animation: spin 1s linear infinite;
+        display: none;
+        margin: 10px auto;
+      }
+
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+      }
+
+      .status {
+        text-align: center;
+        margin-top: 10px;
+        font-weight: bold;
+      }
+
+      table, th, td {
+        border: 1px solid #ccc;
+        border-collapse: collapse;
+        padding: 10px;
+      }
+
+      textarea, input[type="text"] {
+        width: 100%;
+        padding: 10px;
+        margin-bottom: 15px;
+      }
+
+      button {
+        padding: 10px 20px;
+        font-size: 16px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Upload Resume and Job Description</h1>
+    <form id="uploadForm" enctype="multipart/form-data">
+      <div class="drop-zone" id="dropZone">
+        <span id="dropZoneText">Drag and drop a resume PDF here or click to browse</span>
+      </div>
+      <input type="file" name="file" id="fileInput" style="display:none;" accept="application/pdf" required>
+
+      <textarea name="job_description" id="jobDescription" placeholder="Job Description" required></textarea>
+      <input type="text" name="mandatory_keywords" placeholder="Mandatory Keywords (comma separated)" required>
+
+      <button type="submit">Submit</button>
+    </form>
+
+    <div class="loader" id="loadingSpinner"></div>
+    <div class="status" id="statusText"></div>
+
+    <h2>Results</h2>
+    <table id="resultsTable">
+      <thead>
+        <tr>
+          <th>Resume Name</th>
+          <th>Comments</th>
+          <th>Suitability</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+
+    <h3>Resume Summary</h3>
+    <pre id="resumeSummary"></pre>
+
+    <h3>Job Description Summary</h3>
+    <pre id="jobSummary"></pre>
+
+    <script>
+      const dropZone = document.getElementById('dropZone');
+      const dropZoneText = document.getElementById('dropZoneText');
+      const fileInput = document.getElementById('fileInput');
+      const uploadForm = document.getElementById('uploadForm');
+      const loader = document.getElementById('loadingSpinner');
+      const statusText = document.getElementById('statusText');
+      const resultsTable = document.getElementById('resultsTable').getElementsByTagName('tbody')[0];
+      const resumeSummaryEl = document.getElementById('resumeSummary');
+      const jobSummaryEl = document.getElementById('jobSummary');
+
+      fileInput.addEventListener('change', () => {
+        if (fileInput.files.length > 0) {
+          dropZoneText.textContent = `Selected file: ${fileInput.files[0].name}`;
+        }
+      });
+
+      dropZone.addEventListener('click', () => fileInput.click());
+
+      dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropZone.classList.add('dragover');
+      });
+
+      dropZone.addEventListener('dragleave', () => {
+        dropZone.classList.remove('dragover');
+      });
+
+      dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('dragover');
+        if (e.dataTransfer.files.length > 0) {
+          fileInput.files = e.dataTransfer.files;
+          dropZoneText.textContent = `Selected file: ${e.dataTransfer.files[0].name}`;
+        }
+      });
+
+      uploadForm.addEventListener('submit', async function (e) {
+        e.preventDefault();
+
+        const formData = new FormData();
+        const file = fileInput.files[0];
+        const jobDesc = document.getElementById('jobDescription').value;
+        const keywords = uploadForm.mandatory_keywords.value;
+
+        if (!file || !jobDesc || !keywords) {
+          alert("Please fill all required fields.");
+          return;
+        }
+
+        formData.append("file", file);
+        formData.append("job_description", jobDesc);
+        formData.append("mandatory_keywords", keywords);
+
+        loader.style.display = 'block';
+        statusText.innerText = "Analyzing resume...";
+
+        try {
+          const response = await fetch('/upload', {
+            method: 'POST',
+            body: formData
+          });
+
+          loader.style.display = 'none';
+
+          if (response.ok) {
+            const data = await response.json();
+
+            resultsTable.innerHTML = "";
+            const newRow = resultsTable.insertRow();
+            newRow.insertCell().innerText = data.resume_name;
+            newRow.insertCell().innerText = data.comments;
+            newRow.insertCell().innerText = data.suitability;
+
+            resumeSummaryEl.textContent = data.resume_summary;
+            jobSummaryEl.textContent = data.job_summary;
+
+            statusText.innerText = "Analysis complete.";
+          } else {
+            statusText.innerText = "Something went wrong. Please try again.";
+          }
+        } catch (err) {
+          loader.style.display = 'none';
+          statusText.innerText = "Error occurred: " + err.message;
+        }
+      });
+    </script>
+  </body>
+</html>
