@@ -44,6 +44,6 @@ http://127.0.0.1:5000
 
 ---
 
-## ⚠️ Disclaimer
+## Disclaimer
 
-This is a project using OpenAI's GPT. Please ensure proper anonymization and data handling for production use.
+This is a project using OpenAI's GPT. Please ensure proper anonymization and handling of API keys.
